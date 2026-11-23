@@ -167,9 +167,37 @@ export default function Layout() {
         )}
 
         {/* Contenido de la Ruta Activa */}
-        <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-6 pb-24 md:pb-6 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
+
+        {/* Barra Inferior Móvil (PWA Bottom Navigation) */}
+        <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 px-3 py-2 flex justify-around items-center z-20 shadow-sm">
+          {allowedMenus.slice(0, 4).map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.ruta}
+                to={item.ruta}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-0.5 text-[10px] font-semibold ${
+                    isActive ? 'text-[#0284C7]' : 'text-slate-400'
+                  }`
+                }
+              >
+                <Icon size={18} />
+                <span className="truncate max-w-[68px]">{item.label.split(' ')[0]}</span>
+              </NavLink>
+            );
+          })}
+          <button
+            onClick={() => logout(false)}
+            className="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-red-500 cursor-pointer"
+          >
+            <LogOut size={18} />
+            <span>Salir</span>
+          </button>
+        </nav>
       </div>
     </div>
   );

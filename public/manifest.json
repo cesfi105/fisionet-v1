@@ -1,0 +1,24 @@
+{
+  "name": "FisioNet — Fisioterapia a Domicilio",
+  "short_name": "FisioNet",
+  "description": "Plataforma de rehabilitación física domiciliaria en Tegucigalpa, M.D.C.",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0284C7",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

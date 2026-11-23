@@ -1,9 +1,91 @@
-// Encriptación SHA-256 nativa del navegador (Web Crypto API)
-export async function hashPasswordSHA256(plainText) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plainText);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+export async function hashPasswordSHA256(message) {
+  // 1. Usar Web Crypto API nativa si está disponible (localhost o HTTPS)
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
 
+  // 2. Respaldo SHA-256 puro en JS para móviles por IP local HTTP (192.168.x.x)
+  function rightRotate(value, amount) {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+
+  const mathPow = Math.pow;
+  const maxWord = mathPow(2, 32);
+  let result = '';
+  const words = [];
+  const asciiBitLength = message.length * 8;
+
+  const hash = [];
+  const k = [];
+  let primeCounter = 0;
+  const isComposite = {};
+
+  for (let candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (let i = 0; i < 313; i += candidate) {
+        isComposite[i] = candidate;
+      }
+      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+
+  const utf8Msg = unescape(encodeURIComponent(message));
+  const bitLength = utf8Msg.length * 8;
+  let padded = utf8Msg + '\x80';
+  while ((padded.length % 64) - 56) padded += '\x00';
+
+  for (let i = 0; i < padded.length; i++) {
+    const j = padded.charCodeAt(i);
+    words[i >> 2] |= j << (((3 - i) % 4) * 8);
+  }
+  words[words.length] = (bitLength / maxWord) | 0;
+  words[words.length] = bitLength;
+
+  for (let j = 0; j < words.length; ) {
+    const w = words.slice(j, (j += 16));
+    const oldHash = hash.slice(0);
+
+    for (let i = 0; i < 64; i++) {
+      const w15 = w[i - 15];
+      const w2 = w[i - 2];
+      const a = hash[0];
+      const e = hash[4];
+      const temp1 =
+        hash[7] +
+        (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+        ((e & hash[5]) ^ (~e & hash[6])) +
+        k[i] +
+        (w[i] =
+          i < 16
+            ? w[i]
+            : (w[i - 16] +
+                (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                w[i - 7] +
+                (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+              0);
+      const temp2 =
+        (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+        ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
+      hash.unshift((temp1 + temp2) | 0);
+      hash.pop();
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+
+    for (let i = 0; i < 8; i++) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+  }
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 3; j + 1; j--) {
+      const b = (hash[i] >> (j * 8)) & 255;
+      result += (b < 16 ? 0 : '') + b.toString(16);
+    }
+  }
+  return result;
+}
